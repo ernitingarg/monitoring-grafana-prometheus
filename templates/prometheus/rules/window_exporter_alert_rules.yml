@@ -1,0 +1,65 @@
+groups:
+  - name: Window exporter host & hardware alert rules
+    rules:
+      - alert: WindowHostServiceStatus
+        expr: windows_service_status{status="ok"} != 1
+        for: 3m
+        labels:
+          severity: "critical"
+        annotations:
+          summary: "Windows Server service status is not ok"
+          description: "Windows Server service status is not ok."
+
+      - alert: WindowHostCollectorError
+        expr: windows_exporter_collector_success == 0
+        for: 3m
+        labels:
+          severity: "critical"
+        annotations:
+          summary: "Windows Server collector Error"
+          description: "Collector {{ $labels.collector }} was not successful, current value = *{{$value}}*."
+
+      - alert: WindowHostOutOfMemory
+        expr: windows_os_physical_memory_free_bytes * 100/ windows_cs_physical_memory_bytes < 25
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host is out of memory"
+          description: "Host memory is filling up (< 25% left), current value = *{{$value}}%*."
+
+      - alert: WindowHostOutOfDiskSpace
+        expr: (windows_logical_disk_free_bytes * 100) / windows_logical_disk_size_bytes < 20
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host is out of disk space for `{{$labels.volume}}` volume"
+          description: "Disk is almost full (< 20% left) for `{{$labels.volume}}` volume, current value = *{{$value}}%*."
+
+      - alert: WindowHostHighCpuLoad
+        expr: 100 - (avg by(target_env, target_resource_name) (rate(windows_cpu_time_total{mode="idle"}[1m])) * 100) > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host having high CPU load"
+          description: "CPU load is > 75%, current value = *{{$value}}%*."
+
+      - alert: WindowHostUnusualNetworkThroughputIn
+        expr: sum by (target_env, target_resource_name) (rate(windows_net_bytes_received_total[1m])) / 1024 / 1024 > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host has unusual network throughput in"
+          description: "Host network interfaces are probably receiving too much data (> 1 MB/s), current value = *{{$value}}MB/s*."
+
+      - alert: WindowHostUnusualNetworkThroughputOut
+        expr: sum by (target_env, target_resource_name) (rate(windows_net_bytes_sent_total[1m])) / 1024 / 1024 > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host has unusual network throughput out"
+          description: "Host network interfaces are probably sending too much data (> 1 MB/s), current value = *{{$value}}MB/s*."
