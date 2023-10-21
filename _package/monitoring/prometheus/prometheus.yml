@@ -1,0 +1,132 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 40s
+  external_labels:
+    monitor: "prom-sample_project"
+
+# Rules and alerts
+rule_files:
+  - "rules/self_monitoring_alert_rules.yml"
+  - "rules/node_exporter_alert_rules.yml"
+  - "rules/window_exporter_alert_rules.yml"
+  - "rules/blackbox_alert_rules.yml"
+  - "rules/cadvisor_alert_rules.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+          labels:
+            target_env: "production"
+            target_resource_name: "sample_monitoring_host"
+
+# List of scrape configurations
+scrape_configs:
+  # Self monitoring
+  - job_name: "self_monitoring_job"
+    static_configs:
+      - targets: ["prometheus:9090"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["alertmanager:9093"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["blackbox:9115"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["grafana:3000"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["loki:3100"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["nodeexporter:9100"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+      - targets: ["cadvisor:8080"]
+        labels:
+          target_env: "production"
+          target_resource_name: "sample_monitoring_host"
+
+  # Node exporter targets
+  - job_name: "node_exporter_job"
+    static_configs:
+      - targets: ['10.0.0.4:9100']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'sample_host0'
+
+  # CAdvisor container targets
+  - job_name: "cadvisor_job"
+    static_configs:
+      - targets: ['10.0.0.4:8080']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'sample_host0'
+
+  # Promtail metrics targets
+  - job_name: "promtail_metrics_job"
+    static_configs:
+      - targets: ['10.0.0.4:9080']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'sample_host0'
+
+  # Blackbox https exporter targets
+  - job_name: "blackbox_https_healthcheck_job"
+    metrics_path: /probe
+    params:
+      module: [https_2xx] # Look for a HTTPS 200 response.
+    static_configs:
+      - targets: ['https://10.0.0.4:9010/height']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'sample_host0'
+
+      - targets: ['https://www.google.com']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'google'
+
+      - targets: ['https://www.microsoft.com']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'microsoft'
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+    scrape_interval: 45s
+
+  # Blackbox http exporter targets
+  - job_name: "blackbox_http_healthcheck_job"
+    metrics_path: /probe
+    params:
+      module: [http_2xx] # Look for a HTTP 200 response.
+    static_configs:
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+    scrape_interval: 45s

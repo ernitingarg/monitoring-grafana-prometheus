@@ -1,0 +1,116 @@
+groups:
+  - name: Scrap service montoring alert rules
+    rules:
+      - alert: PrometheusScrapServiceNotRunning
+        expr: up{instance="prometheus:9090"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Prometheus scrap service is not running"
+          description: "Prometheus scrap service has disappeared."
+
+      - alert: AlertManagerScrapServiceNotRunning
+        expr: up{instance="alertmanager:9093"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "AlertManager scrap service is not running"
+          description: "AlertManager scrap service has disappeared."
+
+      - alert: BlackBoxScrapServiceNotRunning
+        expr: up{instance="blackbox:9115"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "BlackBox scrap service is not running"
+          description: "BlackBox scrap service has disappeared."
+
+      - alert: GrafanaScrapServiceNotRunning
+        expr: up{instance="grafana:3000"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Grafana scrap service is not running"
+          description: "Grafana scrap service has disappeared."
+
+      - alert: LokiScrapServiceNotRunning
+        expr: up{instance="loki:3100"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Loki scrap service is not running"
+          description: "Loki scrap service has disappeared."
+
+      - alert: NodeExporterScrapServiceNotRunning
+        expr: up{instance="nodeexporter:9100"} == 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Node exporter scrap service of monitoring host is not running"
+          description: "Node exporter scrap service of monitoring host has disappeared."
+
+  - name: Prometheus self-monitoring alert rules
+    rules:
+      - alert: PrometheusConfigurationReloadFailure
+        expr: prometheus_config_last_reload_successful != 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Prometheus configuration reload failure"
+          description: "Prometheus configuration has reload error. Please verify prometheus.yml."
+
+      - alert: PrometheusNotConnectedToAlertmanager
+        expr: prometheus_notifications_alertmanagers_discovered < 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Prometheus not connected to alertmanager"
+          description: "Prometheus cannot connect the alertmanager."
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: increase(prometheus_rule_evaluation_failures_total[3m]) > 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Prometheus rule evaluation failures"
+          description: "Prometheus encountered *{{$value}}* rule evaluation failures. Please verify prometheus rules files."
+
+  - name: AlertManager self-monitoring alert rules
+    rules:
+      - alert: AlertmanagerConfigurationReloadFailure
+        expr: alertmanager_config_last_reload_successful  != 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "AlertManager configuration reload failure"
+          description: "AlertManager configuration has reload error. Please verify alertmanager.yml."
+
+      - alert: AlertmanagerNotificationFailing
+        expr: rate(alertmanager_notifications_failed_total[1m]) > 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Prometheus AlertManager notification failing"
+          description: "Alertmanager is failing sending notifications."
+
+  - name: BlackBox self-monitoring alert rules
+    rules:
+      - alert: BlackBoxConfigurationReloadFailure
+        expr: blackbox_exporter_config_last_reload_successful != 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "BlackBox configuration reload failure"
+          description: "BlackBox configuration has reload error. Please verify blackbox.yml."

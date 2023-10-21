@@ -1,0 +1,44 @@
+groups:
+  - name: Blackbox health check rules
+    rules:
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        labels:
+          severity: "critical"
+        annotations:
+          summary: "Blackbox probe failed for target {{$labels.instance}}"
+          description: 'Failed to scrape on target {{$labels.instance}}.{{- "\n\t" -}}Probe HTTP status code: *{{ printf "(probe_http_status_code{instance=\"%s\"})" $labels.instance | query | first | value }}*{{- "\n\t" -}}Probe duration seconds: *{{ printf "(probe_duration_seconds{instance=\"%s\"})" $labels.instance | query | first | value }}*'
+
+      - alert: BlackboxSlowProbe
+        expr: avg_over_time(probe_duration_seconds[1m]) > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Blackbox slow probe for target {{$labels.instance}}"
+          description: "Blackbox probe took more than 1s to complete, current value = *{{$value}}s*."
+
+      - alert: BlackboxProbeSlowHttp
+        expr: avg_over_time(probe_http_duration_seconds[1m]) > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Blackbox probe slow HTTP for target {{$labels.instance}}"
+          description: "HTTP request took more than 1s to complete, current value = *{{$value}}s*."
+
+      - alert: BlackboxSslCertificateWillExpireSoon
+        expr: round((probe_ssl_earliest_cert_expiry - time()) / 86400) < 20
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "SSL certificate will expire soon for target *{{$labels.instance}}*"
+          description: "SSL certificate will expire in *{{$value}} days*."
+
+      - alert: BlackboxSslCertificateExpired
+        expr: round((probe_ssl_earliest_cert_expiry - time()) / 86400) <= 0
+        labels:
+          severity: "critical"
+        annotations:
+          summary: "Blackbox SSL certificate expired for target *{{$labels.instance}}*"
+          description: "SSL certificate has expired."

@@ -1,0 +1,112 @@
+version: '3'
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - /home/monitoring/prometheus:/etc/prometheus
+      - prometheus-storage:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=1y'
+    ports:
+      - 9090:9090
+    restart: always
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - /home/monitoring/alertmanager:/etc/alertmanager
+      - alertmanager-storage:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - 9093:9093
+    restart: always
+    depends_on:
+      - prometheus
+
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox
+    volumes:
+      - /home/monitoring/blackbox_exporter:/etc/blackbox_exporter
+      - blackbox-storage:/blackbox
+    command:
+      - '--config.file=/etc/blackbox_exporter/blackbox.yml'
+      - '--history.limit=300'
+      - '--log.level=debug'
+    ports:
+      - 9115:9115
+    restart: always
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:8.4.11 # don't change with major release as importation of existing dashboards might not work
+    container_name: grafana
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - /home/monitoring/grafana/grafana.env:/etc/grafana/grafana.ini
+      - /home/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - 3000:3000
+    restart: always
+    depends_on:
+      - prometheus
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - /home/monitoring/loki:/etc/loki
+      - loki-storage:/loki
+    command:
+      - '--config.file=/etc/loki/loki.yaml'
+    ports:
+      - 3100:3100
+    restart: always
+    depends_on:
+      - prometheus
+
+  nodeexporter:
+    image: prom/node-exporter:latest
+    container_name: nodeexporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|run)($$|/)'
+    ports:
+      - 9100:9100
+    restart: always
+    depends_on:
+      - prometheus
+
+  cadvisor:
+    image: google/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8080:8080
+    restart: always
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-storage:
+  alertmanager-storage:
+  blackbox-storage:
+  grafana-storage:
+  loki-storage:
+  

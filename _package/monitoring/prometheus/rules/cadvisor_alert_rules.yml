@@ -1,0 +1,55 @@
+groups:
+  - name: Cadvisor docker containers alert rules
+    rules:
+      - alert: ContainerKilled
+        expr: time() - container_last_seen{name!=''} > 300
+        labels:
+          severity: "critical"
+        annotations:
+          summary: "Container *{{$labels.name}}* instance disappeared"
+          description: "Container *{{$labels.name}}* has disappeared."
+
+      - alert: ContainerHighCpuUsage
+        expr: rate(container_cpu_usage_seconds_total{name!=''}[1m]) * 100 > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Container *{{$labels.name}}* has high CPU usage"
+          description: "Container *{{$labels.name}}* CPU load is > 75%, current value = *{{$value}}%*."
+
+      - alert: ContainerMemoryUsage
+        expr: container_memory_working_set_bytes{name!=''} / (container_spec_memory_limit_bytes{name!=''} > 0) * 100 > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Container *{{$labels.name}}* has high Memory usage"
+          description: "Container *{{$labels.name}}* memory usage is above 75%, current value = *{{$value}}%*."
+
+      - alert: ContainerVolumeUsage
+        expr: (1 -((container_fs_inodes_free{name!=''} >0 ) / (container_fs_inodes_total{name!=''}))) * 100 > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Container *{{$labels.name}}* has high Volume usage"
+          description: "Container *{{$labels.name}}* volume usage is above 75%, current value = *{{$value}}%*."
+
+      - alert: ContainerVolumeIoUsage
+        expr: (container_fs_io_current{name!=''} * 100) > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Container *{{$labels.name}}* has high Volume IO usage"
+          description: "Container *{{$labels.name}}* volume IO usage is above 75%, current value = *{{$value}}%*."
+
+      - alert: ContainerHighThrottleRate
+        expr: rate(container_cpu_cfs_throttled_seconds_total{name!=''}[1m]) > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Container *{{$labels.name}}* has high throttle rate"
+          description: "Container *{{$labels.name}}* is being throttled, current value = *{{$value}}*."

@@ -1,0 +1,11 @@
+groups:
+  - name: Loki alert rules
+    rules:
+      # To filter alert based on level which can be sent to slack via alertmanager
+      - alert: ErrorsInLogs
+        expr: sum(count_over_time({level="ERROR"} | regexp `(?P<log>(.|\n)+)`[1m])) by (target_env, target_resource_name, log)
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "There is new error in logs. Please check in Loki dashboard."
+          description: "{{ $labels.log }}"

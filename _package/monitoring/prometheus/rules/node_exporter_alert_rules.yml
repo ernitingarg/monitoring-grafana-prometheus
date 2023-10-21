@@ -1,0 +1,56 @@
+groups:
+  - name: Node exporter host & hardware alert rules
+    rules:
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes * 100/ node_memory_MemTotal_bytes < 25
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host is out of memory"
+          description: "Host memory is filling up (< 25% left), current value = *{{$value}}%*."
+
+      - alert: HostOutOfDiskSpace
+        expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 20
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host is out of disk space for *{{$labels.mountpoint}}* mount"
+          description: "Disk is almost full (< 20% left) for *{{$labels.mountpoint}}* mount, current value = *{{$value}}%*."
+
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(target_env, target_resource_name) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 75
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host having high CPU load"
+          description: "CPU load is > 75%, current value = *{{$value}}%*."
+
+      - alert: HostUnusualNetworkThroughputIn
+        expr: sum by (target_env, target_resource_name) (rate(node_network_receive_bytes_total[1m])) / 1024 / 1024 > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host has unusual network throughput in"
+          description: "Host network interfaces are probably receiving too much data (> 1 MB/s), current value = *{{$value}}MB/s*."
+
+      - alert: HostUnusualNetworkThroughputOut
+        expr: sum by (target_env, target_resource_name) (rate(node_network_transmit_bytes_total[1m])) / 1024 / 1024 > 1
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "Host has unusual network throughput out"
+          description: "Host network interfaces are probably sending too much data (> 1 MB/s), current value = *{{$value}}MB/s*."
+
+      - alert: HostOomKillDetected
+        expr: increase(node_vmstat_oom_kill[1m]) > 0
+        for: 3m
+        labels:
+          severity: "warning"
+        annotations:
+          summary: "For host, OOM kill detected"
+          description: "OOM kill detected, current value = *{{$value}}*."
