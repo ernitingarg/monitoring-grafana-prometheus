@@ -1,0 +1,58 @@
+global:
+  slack_api_url: "${SLACK_WEB_HOOK_URL}"
+
+route:
+  group_by: ["alertname"]
+  group_wait: 30s # Wait time to buffer alerts before sending
+  group_interval: 1m # How long to wait before sending a notification about new alerts that are added to a group of alerts for which an initial notification has already been sent. Note: The alert will be considered as resolved after this time interval sothat new alert can be sent if appears again.
+  repeat_interval: 10m # How long to wait before sending a notification again if it has already been sent successfully for an alert. Note: If alert is not resolved, then the same alert will be resent after this interval.
+  receiver: "send_slack_alert"
+  routes:
+    - match:
+        alertname: "ErrorsInLogs"
+      group_interval: 5m
+
+receivers:
+  - name: "send_slack_alert"
+    slack_configs:
+      - channel: "${SLACK_CHANNEL_NAME}"
+        username: "AlertManager [{{.CommonLabels.target_env | toUpper }}]"
+        icon_emoji: '{{ if eq .CommonLabels.severity "critical" }}:exclamation:{{ else }}:warning:{{ end }}'
+        footer: "Prometheus API"
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}#FFBF00{{ else }}#FF0000{{ end }}{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}'
+        text: >-
+          {{ range .Alerts -}}
+          *Summary:* ${HERE} {{ .Annotations.summary }}
+          {{- "\n" -}}
+          *Description:* {{ .Annotations.description }}
+          {{- "\n" -}}
+          *Environment:* {{ .Labels.target_env | toUpper }}
+          {{- "\n" -}}
+          *Severity:* *`{{ .Labels.severity | title }}`*
+          {{- "\n" -}}
+          {{ if eq .Labels.job "cadvisor_job" }} {{ if ne .Labels.name "" }}
+          *Container Name:* {{ .Labels.name }}
+          {{- "\n" -}}
+          {{ end }}
+          {{ end }}
+          {{- "\n" -}}
+          *Resource Name:* {{ .Labels.target_resource_name }}
+          {{- "\n" -}}
+
+# Inhibition rules allow to mute a set of alerts given that another alert is firing.
+inhibit_rules:
+  - source_match:
+      severity: "critical"
+      alertname: "BlackboxProbeFailed"
+    target_match:
+      severity: "warning"
+      alertname: "ErrorsInLogs"
+    equal: ["target_env"]
+
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["target_resource_name"]
