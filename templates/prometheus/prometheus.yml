@@ -1,0 +1,104 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 40s
+  external_labels:
+    monitor: "prom-${PROJECT_NAME}"
+
+# Rules and alerts
+rule_files:
+  - "rules/self_monitoring_alert_rules.yml"
+  - "rules/node_exporter_alert_rules.yml"
+  - "rules/window_exporter_alert_rules.yml"
+  - "rules/blackbox_alert_rules.yml"
+  - "rules/cadvisor_alert_rules.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+          labels:
+            target_env: "${ENV}"
+            target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+# List of scrape configurations
+scrape_configs:
+  # Self monitoring
+  - job_name: "self_monitoring_job"
+    static_configs:
+      - targets: ["prometheus:9090"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["alertmanager:9093"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["blackbox:9115"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["grafana:3000"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["loki:3100"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["nodeexporter:9100"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+      - targets: ["cadvisor:8080"]
+        labels:
+          target_env: "${ENV}"
+          target_resource_name: "${MONITORING_RESOURCE_NAME}"
+
+  # Node exporter targets
+  - job_name: "node_exporter_job"
+    static_configs: ${TARGET_NODE_EXPORTER_LIST}
+
+  # CAdvisor container targets
+  - job_name: "cadvisor_job"
+    static_configs: ${TARGET_CADVISOR_LIST}
+
+  # Promtail metrics targets
+  - job_name: "promtail_metrics_job"
+    static_configs: ${TARGET_PROMTAIL_LIST}
+
+  # Blackbox https exporter targets
+  - job_name: "blackbox_https_healthcheck_job"
+    metrics_path: /probe
+    params:
+      module: [https_2xx] # Look for a HTTPS 200 response.
+    static_configs: ${TARGET_BLACKBOX_HTTPS_PROBE_LIST}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+    scrape_interval: 45s
+
+  # Blackbox http exporter targets
+  - job_name: "blackbox_http_healthcheck_job"
+    metrics_path: /probe
+    params:
+      module: [http_2xx] # Look for a HTTP 200 response.
+    static_configs: ${TARGET_BLACKBOX_HTTP_PROBE_LIST}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+    scrape_interval: 45s
