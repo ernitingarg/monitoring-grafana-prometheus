@@ -91,7 +91,7 @@ function validation() {
 	__validate_if_params_have_correct_bool_value "${BOOL_PARAMS[@]}"
 
 	if $HAS_ERROR; then
-		echo "please assign the value(s) for above parameters in file '$BASH_EXE_PATH/templates/.env'"
+		echo "please assign the value(s) for above parameters in file '$PARENT_DIR/templates/.env'"
 		exit 1
 	fi
 }
