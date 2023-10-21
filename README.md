@@ -64,7 +64,11 @@ To generate the package automatically, please follow below steps:
 - Run the bash script `./scripts/generate_skeleton.sh`
 - The package will be generated at folder `_package/monitoring`. (Please refer sample package)
 - Now, you can copy `monitoring` folder to remote monitoring host machine.
-- The next step is to install `monitoring/host/resource-monitoring.service` 
+- The next step is to install `monitoring/host/resource-monitoring.service`
+```
+	cp monitoring/host/resource-monitoring.service /etc/systemd/system/resource-monitoring.service
+	systemctl enable resource-monitoring.service
+```
 - OR you can run docker compose directly
 ```
 	cd monitoring/docker
@@ -96,7 +100,7 @@ To generate the package automatically, please follow below steps:
 - It will show you all the available dashboards
 - You can mark the dashboard as favorite
 
-### View miyabi logs in loki
+### View logs in loki
 
 - Go to `http://<monitoring-ip-address>:3000` (eg: http://localhost:3000)
 - In left panel, go to `Explore` icon
