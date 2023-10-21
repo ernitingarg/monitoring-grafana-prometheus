@@ -91,7 +91,7 @@ scrape_configs:
     params:
       module: [https_2xx] # Look for a HTTPS 200 response.
     static_configs:
-      - targets: ['https://10.0.0.4:9010/height']
+      - targets: ['https://10.0.0.4:5000']
         labels:
           target_env: 'sample_project'
           target_resource_name: 'sample_host0'

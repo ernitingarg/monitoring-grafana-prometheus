@@ -17,7 +17,7 @@ Please make sure below services are running on application host. (*The configura
 
 * Application
   * outputs log to file or console
-  * exposes at port 8080 (port can be anything)
+  * exposes at port 5000 (port can be anything)
 * node exporter
   * an agent that gathers os metrics(cpu/memory/disk etc)
   * 9100/metrics

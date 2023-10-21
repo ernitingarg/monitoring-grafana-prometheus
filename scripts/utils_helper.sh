@@ -28,7 +28,7 @@ GENERAL_MANDATORY_PARAMS=(
 	"ENV"
 	"PROJECT_NAME"
 	"MOUNT_DIR"
-     	"MONITORING_IP_ADDRESS"
+	"MONITORING_IP_ADDRESS"
 	"MONITORING_RESOURCE_NAME"
 	"SLACK_WEB_HOOK_URL"
 	"SLACK_CHANNEL_NAME"
@@ -115,22 +115,12 @@ function prepare_files_from_template() {
 	cp $PARENT_DIR/templates/blackbox_exporter/blackbox.yml $PACKAGE_MONITORING_DIR/blackbox_exporter
 	MONITORING_IP_ADDRESS=$MONITORING_IP_ADDRESS envsubst <$PARENT_DIR/templates/grafana/grafana.env >$PACKAGE_MONITORING_DIR/grafana/grafana.env
 
-	# copy/export rules & corresponding dashboards files
-	cp $PARENT_DIR/templates/prometheus/rules/self_monitoring_alert_rules.yml $PACKAGE_MONITORING_DIR/prometheus/rules
-	cp $PARENT_DIR/templates/prometheus/rules/node_exporter_alert_rules.yml $PACKAGE_MONITORING_DIR/prometheus/rules
-	cp $PARENT_DIR/templates/prometheus/rules/window_exporter_alert_rules.yml $PACKAGE_MONITORING_DIR/prometheus/rules
-	cp $PARENT_DIR/templates/prometheus/rules/cadvisor_alert_rules.yml $PACKAGE_MONITORING_DIR/prometheus/rules
-	cp $PARENT_DIR/templates/prometheus/rules/blackbox_alert_rules.yml $PACKAGE_MONITORING_DIR/prometheus/rules
+	# copy rules files
+	cp -r $PARENT_DIR/templates/prometheus/rules/* $PACKAGE_MONITORING_DIR/prometheus/rules
 	SLACK_WEB_HOOK_URL=$SLACK_WEB_HOOK_URL SLACK_CHANNEL_NAME=$SLACK_CHANNEL_NAME HERE=$HERE envsubst <$PARENT_DIR/templates/alertmanager/alertmanager.yml >$PACKAGE_MONITORING_DIR/alertmanager/alertmanager.yml
 
 	# copy dashboards
-	cp $ROOT_DIR/dashboards/promtail_loki.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/self_monitoring.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/node_exporter.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/windows_exporter.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/containers_cadvisor.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/alert_manager.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
-	cp $ROOT_DIR/dashboards/blackbox_exporter.json $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
+	cp -r $PARENT_DIR/dashboards/* $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
 
 	# copy/export docker/host files
 	MOUNT_DIR=$MOUNT_DIR envsubst <$PARENT_DIR/templates/docker/docker-compose.yml >$PACKAGE_MONITORING_DIR/docker/docker-compose.yml
@@ -173,11 +163,11 @@ __prepare_prometheus_file() {
 		TARGET_PROMTAIL=$(__target_template ${!IP_ADDRESS}:9080 ${!RESOURCE_NAME,,})
 		TARGET_PROMTAIL_LIST+="${TARGET_PROMTAIL}${NEWLINE}"
 
-		PORT=9010
+		PORT=5000
 		if [[ "${PROBE_IS_HTTP}" == "true" ]]; then
-			TARGET_BLACKBOX_HTTP_PROBE=$(__target_template http://${!IP_ADDRESS}:$PORT/height ${!RESOURCE_NAME,,})
+			TARGET_BLACKBOX_HTTP_PROBE=$(__target_template http://${!IP_ADDRESS}:$PORT ${!RESOURCE_NAME,,})
 		else
-			TARGET_BLACKBOX_HTTPS_PROBE=$(__target_template https://${!IP_ADDRESS}:$PORT/height ${!RESOURCE_NAME,,})
+			TARGET_BLACKBOX_HTTPS_PROBE=$(__target_template https://${!IP_ADDRESS}:$PORT ${!RESOURCE_NAME,,})
 		fi
 
 		TARGET_BLACKBOX_HTTP_PROBE_LIST+="${TARGET_BLACKBOX_HTTP_PROBE}${NEWLINE}"
