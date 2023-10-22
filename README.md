@@ -15,7 +15,7 @@ This tool automatically generates deployment package required for monitoring hos
 
 ### Services for Application Host(s)
 
-Please make sure below services are running on application host. (_The configuration and deployment of services related to application host is not covered in this document, however a docker-compose file can be used to install below services in application host machine_)
+Please make sure below services are running on application host. (_The configuration and deployment of services related to application host is not covered in this document, however you can find template files at path [application](application)._)
 
 - Application
   - outputs log to file or console

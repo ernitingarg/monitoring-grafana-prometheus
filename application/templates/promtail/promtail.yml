@@ -1,0 +1,111 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# this is important for maintaining position of logs.
+# if this file is deleted, all the logs will be resent.
+positions:
+  filename: ${MY_APP_PATH}/promtail/log_positions.yaml # eg: /home/demo-app/
+
+clients:
+  - url: http://${MONITORING_IP_ADDRESS}:3100/loki/api/v1/push # IP address of monitoring host
+
+scrape_configs:
+  - job_name: application_job
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) \[(?P<threadName>[\s\S]*)\] (?P<level>\w+)\s*(?P<component>[a-zA-Z0-9.]*) - (?P<content>[\s\S]*)'
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}'
+      - template:
+          source: timestamp
+          template: '{{ Replace .Value "," "." 1 }}'
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05.000"
+      - labels:
+          level:
+      - metrics:
+          log_lines_total:
+            type: Counter
+            description: "total number of log lines"
+            prefix: promtail_custom_
+            max_idle_duration: 24h
+            config:
+              match_all: true
+              action: inc
+          log_bytes_total:
+            type: Counter
+            description: "total bytes of log lines"
+            prefix: promtail_custom_
+            max_idle_duration: 24h
+            config:
+              match_all: true
+              count_entry_bytes: true
+              action: add
+      - match:
+          selector: '{target_os="Linux"}'
+          stages:
+            - regex:
+                source: filename
+                expression: "/(.+/)(?P<filename>\\S+)"
+            - template:
+                source: filename
+                template: "${HOST_NAME}_{{ .Value }}" # Name of machine
+            - labels:
+                filename:
+      - match:
+          selector: '{target_os="Windows"}'
+          stages:
+            - regex:
+                source: filename
+                expression: "([a-z]:)\\\\(.+\\\\)(?P<filename>\\S+)"
+            - template:
+                source: filename
+                template: "${HOST_NAME}_{{ .Value }}" # Name of machine
+            - labels:
+                filename:
+    static_configs:
+      - labels:
+          target_app: ${MY_APP_NAME} # Application Name (eg: demo-app)
+          target_os: Linux
+          target_env: ${ENV} # Environment (eg: production)
+          target_host: ${HOST_NAME} # Name of machine
+          __path__: ${MY_APP_LOG_PATH} # Application log path (g: /home/demo-app/logs/*log)
+
+  - job_name: windows_system_job
+    pipeline_stages:
+      - labeldrop:
+          - channel
+          - computer
+    windows_events:
+      use_incoming_timestamp: true
+      bookmark_path: "./bookmark.xml"
+      eventlog_name: "Application"
+      xpath_query: "*"
+      labels:
+        target_app: system
+        target_os: Windows
+        target_env: ${ENV} # Environment (eg: production)
+        target_host: ${HOST_NAME} # Name of machine
+
+  - job_name: linux_system_job
+    pipeline_stages:
+      - match:
+          selector: '{target_os="Linux"}'
+          stages:
+            - regex:
+                source: filename
+                expression: "/(.+/)(?P<filename>\\S+)"
+            - template:
+                source: filename
+                template: "${HOST_NAME}_{{ .Value }}" # Name of machine
+            - labels:
+                filename:
+    static_configs:
+      - labels:
+          target_app: system
+          target_os: Linux
+          target_env: ${ENV} # Environment (eg: production)
+          target_host: ${HOST_NAME} # Name of machine
+          __path__: /var/log/*log

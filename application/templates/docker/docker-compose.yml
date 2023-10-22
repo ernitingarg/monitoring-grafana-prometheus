@@ -1,0 +1,42 @@
+version: '3'
+services:
+  nodeexporter:
+    image: prom/node-exporter:latest
+    container_name: nodeexporter
+    restart: always
+    ports:
+      - 9100:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|run)($$|/)'
+
+  cadvisor:
+    image: google/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: always
+    ports:
+      - 9080:9080
+    volumes:
+      - /var/log:/var/log
+      - ${MY_APP_PATH}/promtail:/etc/promtail # eg: /home/demo-app (Also, please keep promtail.yml file inside /home/demo-app/promtail )
+    command:
+      - '--config.file=/etc/promtail/promtail.yml'
