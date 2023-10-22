@@ -91,20 +91,10 @@ scrape_configs:
     params:
       module: [https_2xx] # Look for a HTTPS 200 response.
     static_configs:
-      - targets: ['https://10.0.0.4:5000']
-        labels:
-          target_env: 'sample_project'
-          target_resource_name: 'sample_host0'
-
       - targets: ['https://www.google.com']
         labels:
           target_env: 'sample_project'
           target_resource_name: 'google'
-
-      - targets: ['https://www.microsoft.com']
-        labels:
-          target_env: 'sample_project'
-          target_resource_name: 'microsoft'
 
     relabel_configs:
       - source_labels: [__address__]
@@ -121,6 +111,10 @@ scrape_configs:
     params:
       module: [http_2xx] # Look for a HTTP 200 response.
     static_configs:
+      - targets: ['http://www.microsoft.com']
+        labels:
+          target_env: 'sample_project'
+          target_resource_name: 'microsoft'
 
     relabel_configs:
       - source_labels: [__address__]

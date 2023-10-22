@@ -34,10 +34,6 @@ GENERAL_MANDATORY_PARAMS=(
 	"SLACK_CHANNEL_NAME"
 )
 
-BOOL_PARAMS=(
-	"PROBE_IS_HTTP"
-)
-
 HOST_MANDATORY_PARAMS=(
 	"IP_ADDRESS"
 	"RESOURCE_NAME"
@@ -88,8 +84,6 @@ function validation() {
 		((index++))
 	done
 
-	__validate_if_params_have_correct_bool_value "${BOOL_PARAMS[@]}"
-
 	if $HAS_ERROR; then
 		echo "please assign the value(s) for above parameters in file '$PARENT_DIR/templates/.env'"
 		exit 1
@@ -117,12 +111,14 @@ function prepare_files_from_template() {
 
 	# copy rules files
 	cp -r $PARENT_DIR/templates/prometheus/rules/* $PACKAGE_MONITORING_DIR/prometheus/rules
+
+	# copy alertmanager file
 	SLACK_WEB_HOOK_URL=$SLACK_WEB_HOOK_URL SLACK_CHANNEL_NAME=$SLACK_CHANNEL_NAME HERE=$HERE envsubst <$PARENT_DIR/templates/alertmanager/alertmanager.yml >$PACKAGE_MONITORING_DIR/alertmanager/alertmanager.yml
 
 	# copy dashboards
 	cp -r $PARENT_DIR/dashboards/* $PACKAGE_MONITORING_DIR/grafana/provisioning/dashboards
 
-	# copy/export docker/host files
+	# copy docker/host files
 	MOUNT_DIR=$MOUNT_DIR envsubst <$PARENT_DIR/templates/docker/docker-compose.yml >$PACKAGE_MONITORING_DIR/docker/docker-compose.yml
 	MOUNT_DIR=$MOUNT_DIR envsubst <$PARENT_DIR/templates/host/resource-monitoring.service >$PACKAGE_MONITORING_DIR/host/resource-monitoring.service
 
@@ -163,16 +159,6 @@ __prepare_prometheus_file() {
 		TARGET_PROMTAIL=$(__target_template ${!IP_ADDRESS}:9080 ${!RESOURCE_NAME,,})
 		TARGET_PROMTAIL_LIST+="${TARGET_PROMTAIL}${NEWLINE}"
 
-		PORT=5000
-		if [[ "${PROBE_IS_HTTP}" == "true" ]]; then
-			TARGET_BLACKBOX_HTTP_PROBE=$(__target_template http://${!IP_ADDRESS}:$PORT ${!RESOURCE_NAME,,})
-		else
-			TARGET_BLACKBOX_HTTPS_PROBE=$(__target_template https://${!IP_ADDRESS}:$PORT ${!RESOURCE_NAME,,})
-		fi
-
-		TARGET_BLACKBOX_HTTP_PROBE_LIST+="${TARGET_BLACKBOX_HTTP_PROBE}${NEWLINE}"
-		TARGET_BLACKBOX_HTTPS_PROBE_LIST+="${TARGET_BLACKBOX_HTTPS_PROBE}${NEWLINE}"
-
 		((index++))
 	done
 
@@ -194,19 +180,6 @@ __prepare_prometheus_file() {
 	PROJECT_NAME=${PROJECT_NAME,,} ENV=${ENV,,} MONITORING_RESOURCE_NAME=${MONITORING_RESOURCE_NAME,,} TARGET_NODE_EXPORTER_LIST=$TARGET_NODE_EXPORTER_LIST TARGET_CADVISOR_LIST=$TARGET_CADVISOR_LIST TARGET_PROMTAIL_LIST=$TARGET_PROMTAIL_LIST TARGET_BLACKBOX_HTTPS_PROBE_LIST=$TARGET_BLACKBOX_HTTPS_PROBE_LIST TARGET_BLACKBOX_HTTP_PROBE_LIST=$TARGET_BLACKBOX_HTTP_PROBE_LIST BLACKBOX_PROBE_INTERVAL=$BLACKBOX_PROBE_INTERVAL envsubst <$PARENT_DIR/templates/prometheus/prometheus.yml >$PACKAGE_MONITORING_DIR/prometheus/prometheus.yml
 
 	sed -i 's/ *$// ; N;/^\n$/D;P;D;' $PACKAGE_MONITORING_DIR/prometheus/prometheus.yml
-}
-
-# validate if given list of params have correct bool value
-__validate_if_params_have_correct_bool_value() {
-	local param_list=("$@")
-
-	for param in "${param_list[@]}"; do
-		param_value=${!param}
-		if [[ -n $param_value ]] && [[ $param_value != true ]] && [[ $param_value != false ]]; then
-			echo "For parameter '${param}', please assign one of the value from true|false."
-			HAS_ERROR=true
-		fi
-	done
 }
 
 # for a given host param, check if it has valid ip address.
